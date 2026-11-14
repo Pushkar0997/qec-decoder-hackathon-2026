@@ -3,211 +3,242 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>[[18,4,4]] qLDPC Syndrome Decoder — QEC Hackathon 2026</title>
+  <title>Decoding Quantum Errors Without Looking at the Qubits — [[18,4,4]] qLDPC</title>
   <style>
     :root {
-      --bg: #070b14;
-      --surface: #0f172a;
-      --surface-2: #162038;
-      --border: #233252;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --cyan: #38bdf8;
-      --emerald: #34d399;
-      --amber: #fbbf24;
-      --rose: #fb7185;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --bg: #faf8f5;
+      --paper: #ffffff;
+      --ink: #18181b;
+      --muted: #52525b;
+      --faint: #a1a1aa;
+      --border: #e4e0d8;
+      --accent: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --error: #c2410c;
+      --error-soft: #fff7ed;
+      --ok: #15803d;
+      --ok-soft: #f0fdf4;
+      --warn: #b45309;
+      --serif: Georgia, "Times New Roman", serif;
       --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
+      background: var(--bg);
+      color: var(--ink);
       font-family: var(--sans);
-      background: radial-gradient(circle at 15% 10%, #101c36 0%, var(--bg) 55%);
-      color: var(--text);
-      line-height: 1.6;
+      line-height: 1.7;
+      font-size: 16.5px;
       -webkit-font-smoothing: antialiased;
     }
 
-    a { color: var(--cyan); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: #1e40af; }
 
-    .container {
-      max-width: 1100px;
+    .article {
+      max-width: 820px;
       margin: 0 auto;
-      padding: 2rem 1.25rem 4rem;
+      padding: 3rem 1.25rem 5rem;
     }
 
-    /* Header / Hero */
-    .badge-row {
+    .kicker {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4.5vw, 2.9rem);
+      line-height: 1.15;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .deck {
+      font-size: 1.15rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 1.5rem;
+    }
+
+    .byline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      padding: 0.85rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2.25rem;
+    }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: 1.6rem;
+      margin: 2.75rem 0 0.75rem;
+      line-height: 1.25;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 1.5rem 0 0.4rem;
+    }
+
+    p { margin-bottom: 1.1rem; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.86em;
+      background: #f1efe9;
+      padding: 0.12rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    /* Interactive Figures */
+    .figure {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.35rem;
+      margin: 1.5rem 0 2rem;
+      box-shadow: 0 2px 10px rgba(24, 24, 27, 0.04);
+    }
+    .figure-title {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .figure-caption {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .btn-row {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
-    .badge {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      padding: 0.25rem 0.65rem;
-      border-radius: 999px;
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: var(--cyan);
-    }
-    .badge.green {
-      background: rgba(52, 211, 153, 0.12);
-      border-color: rgba(52, 211, 153, 0.35);
-      color: var(--emerald);
-    }
-    .badge.amber {
-      background: rgba(251, 191, 36, 0.12);
-      border-color: rgba(251, 191, 36, 0.35);
-      color: var(--amber);
-    }
-
-    h1 {
-      font-size: clamp(1.85rem, 4vw, 2.75rem);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      line-height: 1.18;
-      margin-bottom: 0.75rem;
-    }
-    .subtitle {
-      color: var(--muted);
-      font-size: 1.05rem;
-      max-width: 780px;
-      margin-bottom: 1.5rem;
-    }
-    .cta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-bottom: 2.25rem;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.6rem 1.05rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
+    button {
+      font-family: var(--sans);
+      font-size: 0.86rem;
       font-weight: 600;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
       border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
+      background: var(--bg);
+      color: var(--ink);
       cursor: pointer;
-      transition: border-color 0.15s, transform 0.1s;
+      transition: all 0.12s;
     }
-    .btn:hover { border-color: var(--cyan); text-decoration: none; transform: translateY(-1px); }
-    .btn.primary {
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      border-color: #38bdf8;
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button.active {
+      background: var(--accent);
+      border-color: var(--accent);
       color: #fff;
     }
 
-    /* KPI Strip */
-    .kpi-grid {
+    /* Lab 1: Parity Puzzle */
+    .parity-layout {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2.5rem;
-    }
-    .kpi {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.1rem 1.2rem;
-    }
-    .kpi-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-    }
-    .kpi-val {
-      font-family: var(--mono);
-      font-size: 1.85rem;
-      font-weight: 700;
-      color: var(--emerald);
-      margin: 0.25rem 0;
-    }
-    .kpi-val.cyan { color: var(--cyan); }
-    .kpi-sub { font-size: 0.82rem; color: var(--muted); }
-
-    /* Sections */
-    section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.5rem;
-      margin-bottom: 1.75rem;
-    }
-    section h2 {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      display: flex;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 1.5rem;
       align-items: center;
-      gap: 0.5rem;
     }
-    .section-lead {
-      color: var(--muted);
-      font-size: 0.95rem;
-      margin-bottom: 1.25rem;
-    }
+    @media (max-width: 680px) { .parity-layout { grid-template-columns: 1fr; } }
 
-    /* Interactive Simulator */
-    .sim-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
-    }
-    .sim-btn {
+    .parity-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 64px);
+      gap: 8px;
+      justify-content: center;
       font-family: var(--mono);
-      font-size: 0.8rem;
-      padding: 0.45rem 0.85rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--surface-2);
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.15s;
     }
-    .sim-btn:hover { border-color: var(--cyan); }
-    .sim-btn.active {
-      background: rgba(56, 189, 248, 0.16);
-      border-color: var(--cyan);
-      color: var(--cyan);
+    .cell {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      border: 1.5px solid var(--border);
+      user-select: none;
+    }
+    .cell.data {
+      background: var(--accent-soft);
+      border-color: #93c5fd;
+      cursor: pointer;
       font-weight: 700;
     }
+    .cell.data.flipped {
+      background: var(--error-soft);
+      border-color: var(--error);
+      color: var(--error);
+    }
+    .cell.check {
+      background: #f4f4f5;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    .cell.check.alarm {
+      background: var(--error);
+      border-color: var(--error);
+      color: #fff;
+      font-weight: 700;
+    }
+    .cell.empty { border: none; background: transparent; }
+    .cell small { font-size: 0.65rem; opacity: 0.8; }
 
-    .sim-grid {
+    .callout {
+      background: #f8f7f3;
+      border-left: 3px solid var(--accent);
+      padding: 0.85rem 1rem;
+      font-size: 0.92rem;
+      border-radius: 0 6px 6px 0;
+    }
+    .callout.warn { border-left-color: var(--error); background: var(--error-soft); }
+    .callout.ok { border-left-color: var(--ok); background: var(--ok-soft); }
+
+    /* Lab 2: 18,4,4 Lattice + BP Slider */
+    .lab2-grid {
       display: grid;
       grid-template-columns: 1.15fr 1fr;
       gap: 1.25rem;
       align-items: start;
     }
-    @media (max-width: 820px) {
-      .sim-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 740px) { .lab2-grid { grid-template-columns: 1fr; } }
 
-    .lattice-box {
-      background: #0a101f;
+    .svg-wrap {
+      background: #fcfbf9;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem;
+      border-radius: 8px;
+      padding: 0.75rem;
     }
-    .lattice-legend {
+    .legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 0.65rem;
+      gap: 0.85rem;
       font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
     }
-    .dot {
+    .swatch {
       display: inline-block;
       width: 10px;
       height: 10px;
@@ -216,431 +247,602 @@
       vertical-align: middle;
     }
 
-    /* Cascade Pipeline */
-    .cascade {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .tier {
-      background: var(--surface-2);
+    .stage-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .stage {
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.85rem 1rem;
-      transition: border-color 0.2s, background 0.2s;
-      opacity: 0.58;
+      border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+      background: var(--bg);
+      opacity: 0.55;
     }
-    .tier.active {
-      opacity: 1;
-      border-color: var(--emerald);
-      background: rgba(52, 211, 153, 0.08);
-    }
-    .tier.passed {
-      opacity: 0.85;
-      border-color: var(--cyan);
-    }
-    .tier-head {
+    .stage.resolved { opacity: 1; border-color: var(--ok); background: var(--ok-soft); }
+    .stage.skipped { opacity: 0.85; border-color: var(--accent); background: var(--accent-soft); }
+    .stage-title {
       display: flex;
       justify-content: space-between;
-      align-items: center;
       font-weight: 700;
-      font-size: 0.92rem;
-      margin-bottom: 0.25rem;
+      font-size: 0.88rem;
+      margin-bottom: 0.2rem;
     }
-    .tier-tag {
+    .stage-badge {
       font-family: var(--mono);
-      font-size: 0.72rem;
-      padding: 0.15rem 0.5rem;
-      border-radius: 6px;
-      background: rgba(148, 163, 184, 0.15);
+      font-size: 0.7rem;
       color: var(--muted);
     }
-    .tier.active .tier-tag {
-      background: rgba(52, 211, 153, 0.2);
-      color: var(--emerald);
-    }
-    .tier p { font-size: 0.84rem; color: var(--muted); }
+    .stage.resolved .stage-badge { color: var(--ok); font-weight: 700; }
+    .stage p { font-size: 0.82rem; color: var(--muted); margin: 0; line-height: 1.45; }
 
-    .output-bar {
+    .bp-meter {
       margin-top: 0.85rem;
-      background: #0a101f;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.85rem 1rem;
-      font-family: var(--mono);
-      font-size: 0.83rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.84rem;
     }
-    .obs-bits {
+    .slider-row {
       display: flex;
-      gap: 0.5rem;
-      margin-top: 0.45rem;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0.4rem 0 0.6rem;
     }
-    .obs-bit {
-      padding: 0.25rem 0.6rem;
-      border-radius: 6px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-    }
-    .obs-bit.flipped {
-      border-color: var(--amber);
-      color: var(--amber);
-      background: rgba(251, 191, 36, 0.12);
-    }
-
-    /* Benchmark Bars */
-    .bar-list { display: flex; flex-direction: column; gap: 0.9rem; }
-    .bar-row { display: flex; flex-direction: column; gap: 0.3rem; }
-    .bar-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.86rem;
-      font-family: var(--mono);
-    }
-    .bar-track {
-      height: 14px;
-      background: #0a101f;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .bar-fill {
-      height: 100%;
-      border-radius: 999px;
-      transition: width 0.4s ease;
-    }
-
-    /* Two-column cards */
-    .two-col {
+    input[type="range"] { flex: 1; accent-color: var(--accent); }
+    .belief-bars { display: flex; flex-direction: column; gap: 0.35rem; }
+    .b-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-      gap: 1rem;
+      grid-template-columns: 72px 1fr 44px;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
     }
-    .mini-card {
-      background: var(--surface-2);
+    .b-track { height: 8px; background: #e4e4e7; border-radius: 99px; overflow: hidden; }
+    .b-fill { height: 100%; background: var(--accent); transition: width 0.25s; }
+    .b-fill.hot { background: var(--error); }
+
+    /* Lab 3: Bit MAE vs Shot LER */
+    .obs-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
+    }
+    .obs-btn {
+      font-family: var(--mono);
+      padding: 0.5rem 0.9rem;
+    }
+    .obs-btn.wrong {
+      background: var(--error-soft);
+      border-color: var(--error);
+      color: var(--error);
+    }
+    .metric-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .metric-box {
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem 1.1rem;
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      background: var(--bg);
     }
-    .mini-card h3 { font-size: 0.98rem; margin-bottom: 0.4rem; color: var(--cyan); }
-    .mini-card ul { padding-left: 1.1rem; color: var(--muted); font-size: 0.88rem; }
-    .mini-card li { margin-bottom: 0.3rem; }
+    .metric-box .lbl { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-box .num { font-family: var(--mono); font-size: 1.5rem; font-weight: 700; }
+
+    /* Results Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.92rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    td.num, th.num { text-align: right; font-family: var(--mono); }
 
     footer {
-      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.86rem;
       color: var(--muted);
-      font-size: 0.82rem;
-      margin-top: 2rem;
-    }
-    code {
-      font-family: var(--mono);
-      font-size: 0.85em;
-      background: rgba(148, 163, 184, 0.14);
-      padding: 0.12rem 0.35rem;
-      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="badge-row">
-      <span class="badge">[[18, 4, 4]] qLDPC Code</span>
-      <span class="badge green">Zero Banned QEC Libraries</span>
-      <span class="badge amber">SI1000 Noise (p = 0.002)</span>
-    </div>
-
-    <h1>QEC Decoder Hackathon 2026</h1>
-    <p class="subtitle">
-      A constrained, rule-compliant <strong>Belief Propagation + Ordered Statistics Decoding (BP+OSD)</strong>
-      syndrome decoder built in Numba-compiled Python for the
-      <a href="https://www.kaggle.com/competitions/quantum-error-correction-decoder" target="_blank" rel="noopener">Kaggle Quantum Error Correction: Decoder Hackathon</a>.
+  <article class="article">
+    <div class="kicker">Interactive Explainer · Quantum Error Correction</div>
+    <h1>Decoding Quantum Errors Without Looking at the Qubits</h1>
+    <p class="deck">
+      How a constrained, from-scratch Belief Propagation + GF(2) OSD decoder cuts logical errors by ~6.5× on the
+      <code>[[18, 4, 4]]</code> qLDPC code — explained visually from first principles.
     </p>
 
-    <div class="cta-row">
-      <a class="btn primary" href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026" target="_blank" rel="noopener">View Repository</a>
-      <a class="btn" href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026/blob/main/handin/decoder.py" target="_blank" rel="noopener">handin/decoder.py</a>
-      <a class="btn" href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026/blob/main/CONTRACT.md" target="_blank" rel="noopener">CONTRACT.md</a>
+    <div class="byline">
+      <span><strong>Author:</strong> Pushkar Kumar</span>
+      <span><strong>Kaggle Score (Late):</strong> 0.04446 Public / 0.04483 Private MAE</span>
+      <span><a href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026" target="_blank" rel="noopener">GitHub Repo</a></span>
+      <span><a href="https://www.kaggle.com/competitions/quantum-error-correction-decoder" target="_blank" rel="noopener">Competition Page</a></span>
     </div>
 
-    <!-- KPI Strip -->
-    <div class="kpi-grid">
-      <div class="kpi">
-        <div class="kpi-label">Kaggle Private MAE</div>
-        <div class="kpi-val">0.04483</div>
-        <div class="kpi-sub">Late Submission (70% test split)</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Kaggle Public MAE</div>
-        <div class="kpi-val">0.04446</div>
-        <div class="kpi-sub">~6.5× lower than ~0.29 baseline</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Local 200k Shot LER</div>
-        <div class="kpi-val cyan">0.07992</div>
-        <div class="kpi-sub">0.08129 on train.csv (4 qubits/shot)</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Memory Footprint</div>
-        <div class="kpi-val cyan">10k chunks</div>
-        <div class="kpi-sub">Runs inside 8 GB RAM (float32 + LUT)</div>
+    <!-- Section 1 -->
+    <h2>1. The Core Problem: You Can't Peek Inside</h2>
+    <p>
+      In a normal computer, if you want to check whether a memory bit got corrupted by a cosmic ray, you just read the bit.
+      In a quantum computer, <strong>reading a data qubit mid-calculation destroys the quantum state</strong>.
+    </p>
+    <p>
+      To get around this, quantum error correction (QEC) spreads <strong>4 logical qubits</strong> (the useful information)
+      across <strong>18 physical data qubits</strong>, surrounded by <strong>14 helper "check" qubits</strong>.
+      We are only allowed to measure the helper qubits. Each helper tells us whether an <em>odd</em> number of its neighboring
+      data qubits flipped — without revealing <em>which</em> one flipped.
+    </p>
+
+    <div class="figure">
+      <div class="figure-title">Interactive Lab 1 · The Parity-Check Intuition</div>
+      <p class="figure-caption">
+        Click any of the 4 hidden <strong>Data Bits (Q0–Q3)</strong> below to inject a bit-flip error. Watch how the
+        <strong>Row &amp; Column Checks</strong> light up — and notice what happens when 1 bit flips versus 2 bits.
+      </p>
+      <div class="parity-layout">
+        <div class="parity-grid" id="parityGrid">
+          <div class="cell data" data-q="0">Q0<small>clean</small></div>
+          <div class="cell data" data-q="1">Q1<small>clean</small></div>
+          <div class="cell check" id="chkR0">Row 0<small>0</small></div>
+
+          <div class="cell data" data-q="2">Q2<small>clean</small></div>
+          <div class="cell data" data-q="3">Q3<small>clean</small></div>
+          <div class="cell check" id="chkR1">Row 1<small>0</small></div>
+
+          <div class="cell check" id="chkC0">Col 0<small>0</small></div>
+          <div class="cell check" id="chkC1">Col 1<small>0</small></div>
+          <div class="cell empty"></div>
+        </div>
+
+        <div>
+          <div class="btn-row">
+            <button id="parityReset">Reset All Clean</button>
+          </div>
+          <div class="callout" id="parityNote">
+            <strong>No errors:</strong> All 4 checks read <code>0</code>. The decoder knows nothing flipped.
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Interactive Simulator -->
-    <section>
-      <h2>Interactive Walkthrough: How One Shot Gets Decoded</h2>
-      <p class="section-lead">
-        You can't read the 4 logical qubits directly without collapsing them. Instead, 14 check qubits fire
-        <strong>70 binary detector alarms</strong> across 5 rounds. Pick a fault scenario below to trace how the cascade resolves it.
+    <!-- Section 2 -->
+    <h2>2. Scaling Up to the <code>[[18, 4, 4]]</code> Competition Circuit</h2>
+    <p>
+      In the <a href="https://www.kaggle.com/competitions/quantum-error-correction-decoder" target="_blank" rel="noopener">Kaggle QEC Decoder Hackathon</a>
+      (hosted by NBI/NQCP, NVIDIA, Riverlane, DTU Physics, QMATH, and DeiC), the real circuit runs <strong>5 noisy rounds</strong>
+      under SI1000 circuit-level noise (<em>p</em> = 0.002), producing <strong>70 binary detector alarms</strong> (<code>D0</code>–<code>D69</code>)
+      per shot. From those 70 alarms, our decoder must predict whether each of the <strong>4 logical observables</strong> (<code>L0</code>–<code>L3</code>) flipped.
+    </p>
+    <p>
+      The catch? Competition rules strictly forbid using existing QEC decoder packages (<code>pymatching</code>, <code>ldpc</code>,
+      <code>stimbposd</code>, <code>beliefmatching</code>, <code>tesseract-decoder</code>, <code>fusion-blossom</code>).
+      Everything in <a href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026/blob/main/handin/decoder.py" target="_blank" rel="noopener"><code>handin/decoder.py</code></a>
+      is implemented using only <code>numpy</code>, <code>scipy</code>, <code>numba</code>, and <code>stim</code>.
+    </p>
+
+    <div class="figure">
+      <div class="figure-title">Interactive Lab 2 · Click Qubits on the [[18, 4, 4]] Lattice</div>
+      <p class="figure-caption">
+        Click any <strong>blue data qubit</strong> below to inject/remove a physical fault (or use the preset buttons).
+        Then drag the <strong>BP Iteration slider</strong> to see how Belief Propagation passes confidence votes before falling back to GF(2) OSD.
       </p>
 
-      <div class="sim-controls" id="simControls">
-        <button class="sim-btn active" data-mode="zero">Zero Error (Clean)</button>
-        <button class="sim-btn" data-mode="w1">Weight-1 Fault (LUT Hit)</button>
-        <button class="sim-btn" data-mode="w2">Weight-2 CZ Fault (LUT Hit)</button>
-        <button class="sim-btn" data-mode="bp">Multi-Fault (BP Converges)</button>
-        <button class="sim-btn" data-mode="osd">Hard Degenerate (GF(2) OSD)</button>
+      <div class="btn-row">
+        <button id="btnClearLattice">Clear Faults</button>
+        <button id="btnRandom1">Inject 1 Fault</button>
+        <button id="btnRandom3">Inject 3 Faults (BP)</button>
+        <button id="btnHardLoop">Inject Symmetric Loop (Needs OSD)</button>
       </div>
 
-      <div class="sim-grid">
-        <div class="lattice-box">
-          <svg id="latticeSvg" viewBox="0 0 420 250" width="100%" aria-label="32-qubit [[18,4,4]] check and data qubit diagram"></svg>
-          <div class="lattice-legend">
-            <span><span class="dot" style="background:#38bdf8"></span>Data Qubit (18)</span>
-            <span><span class="dot" style="background:#334155;border:1px solid #64748b"></span>Quiet Check (14)</span>
-            <span><span class="dot" style="background:#fb7185"></span>Fired Detector</span>
-            <span><span class="dot" style="background:#fbbf24"></span>Physical Fault</span>
+      <div class="lab2-grid">
+        <div class="svg-wrap">
+          <svg id="latticeSvg" viewBox="0 0 420 235" width="100%" aria-label="Interactive 18 data qubit and 14 check qubit lattice"></svg>
+          <div class="legend">
+            <span><span class="swatch" style="background:#1d4ed8"></span>Data Qubit (click me)</span>
+            <span><span class="swatch" style="background:#c2410c"></span>Faulted Qubit / Fired Check</span>
+            <span><span class="swatch" style="background:#d4d4d8"></span>Quiet Check</span>
           </div>
         </div>
 
         <div>
-          <div class="cascade">
-            <div class="tier" id="tier0">
-              <div class="tier-head">
-                <span>Tier 0: Zero-Check &amp; Weight-1/2 LUT</span>
-                <span class="tier-tag">O(1) Hash</span>
-              </div>
-              <p>Packs 70 detector bits into 128-bit integers and checks an open-addressed table of single and top-K pair DEM faults.</p>
+          <div class="stage-list">
+            <div class="stage" id="st0">
+              <div class="stage-title"><span>Tier 0: Zero &amp; Weight-1/2 LUT</span><span class="stage-badge" id="st0Tag">IDLE</span></div>
+              <p>128-bit packed syndrome lookup in an open-addressed hash table. Resolves clean shots &amp; simple faults in O(1).</p>
             </div>
-            <div class="tier" id="tier1">
-              <div class="tier-head">
-                <span>Tier 1: Numba float32 Min-Sum BP</span>
-                <span class="tier-tag">5 Iterations</span>
-              </div>
-              <p>Runs damped normalized min-sum message passing with per-thread pre-allocated workspaces; exits early if H·ê ≡ s (mod 2).</p>
+            <div class="stage" id="st1">
+              <div class="stage-title"><span>Tier 1: float32 Min-Sum BP</span><span class="stage-badge" id="st1Tag">IDLE</span></div>
+              <p>5 iterations of damped message passing ("gossiping" error probabilities between checks &amp; mechanisms).</p>
             </div>
-            <div class="tier" id="tier2">
-              <div class="tier-head">
-                <span>Tier 2: 128-bit Packed GF(2) OSD</span>
-                <span class="tier-tag">RREF + Sweep</span>
-              </div>
-              <p>Sorts DEM columns by BP reliability, runs bitwise GF(2) Gaussian elimination, and sweeps unreliable non-basis combinations.</p>
+            <div class="stage" id="st2">
+              <div class="stage-title"><span>Tier 2: 128-bit GF(2) OSD</span><span class="stage-badge" id="st2Tag">IDLE</span></div>
+              <p>When BP stalls on a symmetric loop, sorts columns by confidence and solves H·ê = s via bitwise Gaussian elimination.</p>
             </div>
           </div>
 
-          <div class="output-bar">
-            <div id="simStatus">Status: All 70 detectors quiet → immediate [0, 0, 0, 0]</div>
-            <div class="obs-bits" id="obsBits"></div>
+          <div class="bp-meter">
+            <div style="display:flex;justify-content:space-between;">
+              <strong>BP Iteration Explorer</strong>
+              <span id="bpIterLabel" style="font-family:var(--mono);">Iter 5 / 5</span>
+            </div>
+            <div class="slider-row">
+              <span style="font-size:0.75rem;color:var(--muted);">Iter 0</span>
+              <input type="range" id="bpSlider" min="0" max="5" value="5" />
+              <span style="font-size:0.75rem;color:var(--muted);">Iter 5</span>
+            </div>
+            <div class="belief-bars" id="beliefBars"></div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Benchmark Comparison -->
-    <section>
-      <h2>Error Rate Comparison (Lower Is Better)</h2>
-      <p class="section-lead">
-        Kaggle evaluates <strong>per-observable-bit MAE</strong> across 4 logical qubits per shot, whereas local scripts also track
-        <strong>shot-level LER</strong> (whether at least 1 of the 4 logical qubits flipped).
+    <!-- Section 3 -->
+    <h2>3. Why Kaggle Shows <code>0.04483</code> While Local Shows <code>0.08129</code></h2>
+    <p>
+      A common point of confusion when reading QEC benchmarks is the difference between <strong>Per-Observable Bit MAE</strong>
+      and <strong>Shot-Level Logical Error Rate (LER)</strong>. Because this code protects 4 logical qubits at once, getting
+      1 of the 4 wrong counts as <code>0.25</code> error on Kaggle, but counts as <code>1.00</code> ("shot failed") in a strict shot-level check.
+    </p>
+
+    <div class="figure">
+      <div class="figure-title">Interactive Lab 3 · Bit MAE vs. Shot-Level LER</div>
+      <p class="figure-caption">
+        Click the 4 logical qubit predictions below to toggle whether our decoder got them right or wrong for a single shot:
       </p>
-      <div class="bar-list">
-        <div class="bar-row">
-          <div class="bar-meta"><span>All-Zeros Baseline (Kaggle MAE)</span><span>0.29000</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:100%; background:#fb7185;"></div></div>
+      <div class="obs-toggles" id="obsToggles">
+        <button class="obs-btn" data-o="0">L0: Correct</button>
+        <button class="obs-btn wrong" data-o="1">L1: Wrong</button>
+        <button class="obs-btn" data-o="2">L2: Correct</button>
+        <button class="obs-btn" data-o="3">L3: Correct</button>
+      </div>
+      <div class="metric-pair">
+        <div class="metric-box">
+          <div class="lbl">Kaggle Metric (Per-Bit MAE)</div>
+          <div class="num" id="bitMaeOut" style="color:var(--accent);">0.250</div>
         </div>
-        <div class="bar-row">
-          <div class="bar-meta"><span>Local train.csv Shot LER (200k shots)</span><span>0.08129</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:28%; background:#fbbf24;"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-meta"><span>Local Sampled Shot LER (200k shots)</span><span>0.07992</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:27.5%; background:#38bdf8;"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-meta"><span>Kaggle Private Score (Late Submission MAE)</span><span>0.04483</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:15.5%; background:#34d399;"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-meta"><span>Kaggle Public Score (Late Submission MAE)</span><span>0.04446</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:15.3%; background:#34d399;"></div></div>
+        <div class="metric-box">
+          <div class="lbl">Local Strict Check (Shot LER)</div>
+          <div class="num" id="shotLerOut" style="color:var(--error);">1.000</div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Honest Engineering Notes -->
-    <section>
-      <h2>Engineering Constraints &amp; Honest Trade-Offs</h2>
-      <div class="two-col">
-        <div class="mini-card">
-          <h3>Rule Compliance</h3>
-          <ul>
-            <li>Zero external QEC decoders (<code>pymatching</code>, <code>ldpc</code>, <code>stimbposd</code>, etc. verified absent via AST check).</li>
-            <li>Uses only <code>numpy</code>, <code>scipy</code>, <code>numba</code>, and <code>stim</code> with pinned versions.</li>
-            <li>100% bitwise deterministic across runs with import-time Numba JIT warmup.</li>
-          </ul>
-        </div>
-        <div class="mini-card">
-          <h3>Known Limitations</h3>
-          <ul>
-            <li>Runs in ~50 s for 200k shots on a 1.2 GHz dual-core i3 laptop (above the 15.4 s judging target on 48 EPYC vCPUs).</li>
-            <li>Hyperparameters (<code>ms_scale=0.78</code>, <code>damping=0.20</code>, <code>osd_w1=64</code>, <code>osd_w2=20</code>) are hard-coded without full sensitivity plots.</li>
-            <li>Standalone competition artifact kept separate from <code>Pushkar0997/qecscreen</code>.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>Benchmark</th>
+          <th class="num">Score</th>
+          <th>Metric Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>All-Zeros Baseline (Kaggle)</td>
+          <td class="num">~0.29000</td>
+          <td>Per-observable bit MAE</td>
+        </tr>
+        <tr>
+          <td><strong>Kaggle Public Score (Late Submission)</strong></td>
+          <td class="num"><strong>0.04446</strong></td>
+          <td>Per-observable bit MAE (30% split)</td>
+        </tr>
+        <tr>
+          <td><strong>Kaggle Private Score (Late Submission)</strong></td>
+          <td class="num"><strong>0.04483</strong></td>
+          <td>Per-observable bit MAE (70% split)</td>
+        </tr>
+        <tr>
+          <td>Local Sampled Validation (200k shots)</td>
+          <td class="num">0.07992</td>
+          <td>Shot-level LER (≥1 wrong bit)</td>
+        </tr>
+        <tr>
+          <td>Local <code>train.csv</code> Validation (200k shots)</td>
+          <td class="num">0.08129</td>
+          <td>Shot-level LER (≥1 wrong bit)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Section 4 -->
+    <h2>4. Engineering Constraints &amp; Honest Trade-Offs</h2>
+    <p>
+      Getting this running reliably on an <strong>8 GB RAM dual-core i3 laptop</strong> without touching banned packages required
+      several practical engineering choices:
+    </p>
+    <ul style="padding-left:1.35rem; margin-bottom:1.25rem;">
+      <li><strong>Bounded Memory (10k-Shot Chunking):</strong> Splitting the 100,000-shot basis arrays into 10,000-shot chunks with pre-allocated <code>float32</code> per-thread workspaces eliminated RAM spikes.</li>
+      <li><strong>Unclocked Import Warmup:</strong> Competition rules only time the two <code>decode()</code> calls, so Numba <code>@njit</code> compilation runs on dummy data during <code>import decoder</code>.</li>
+      <li><strong>Known Runtime Headroom:</strong> On a 1.2 GHz dual-core laptop, 200k shots take ~50 s (above the 15.4 s judging target on 48 EPYC vCPUs + B200). Hard OSD-CS shots remain the main bottleneck.</li>
+      <li><strong>Hyperparameters:</strong> Constants (<code>ms_scale=0.78</code>, <code>damping=0.20</code>, <code>osd_w1=64</code>, <code>osd_w2=20</code>) were tuned on sampled shots; see <code>scripts/ablation_benchmark.py</code> and <code>tests/test_decoder.py</code> in the repo.</li>
+    </ul>
 
     <footer>
-      Built by Pushkar Kumar · <a href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026" target="_blank" rel="noopener">GitHub Repo</a> ·
-      <a href="https://github.com/JuliusRye/QEC_Decoder_Hakathon_2026" target="_blank" rel="noopener">Official Hackathon Repo</a>
+      <span>Pushkar Kumar · MIT ADT University</span>
+      <span>
+        <a href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026" target="_blank" rel="noopener">Repository</a> ·
+        <a href="https://github.com/JuliusRye/QEC_Decoder_Hakathon_2026" target="_blank" rel="noopener">Official Hackathon Repo</a>
+      </span>
     </footer>
-  </div>
+  </article>
 
   <script>
+    // --- LAB 1: 2x2 Parity Puzzle ---
+    const qState = [0, 0, 0, 0];
+    function updateParity() {
+      const cells = document.querySelectorAll("#parityGrid .cell.data");
+      cells.forEach((c) => {
+        const i = Number(c.dataset.q);
+        c.classList.toggle("flipped", qState[i] === 1);
+        c.innerHTML = `Q${i}<small>${qState[i] ? "FLIPPED" : "clean"}</small>`;
+      });
+      const r0 = qState[0] ^ qState[1];
+      const r1 = qState[2] ^ qState[3];
+      const c0 = qState[0] ^ qState[2];
+      const c1 = qState[1] ^ qState[3];
+
+      const setChk = (id, label, val) => {
+        const el = document.getElementById(id);
+        el.classList.toggle("alarm", val === 1);
+        el.innerHTML = `${label}<small>${val}</small>`;
+      };
+      setChk("chkR0", "Row 0", r0);
+      setChk("chkR1", "Row 1", r1);
+      setChk("chkC0", "Col 0", c0);
+      setChk("chkC1", "Col 1", c1);
+
+      const weight = qState.reduce((a, b) => a + b, 0);
+      const note = document.getElementById("parityNote");
+      note.className = "callout";
+      if (weight === 0) {
+        note.innerHTML = "<strong>No errors:</strong> All 4 checks read <code>0</code>. The decoder knows nothing flipped.";
+      } else if (weight === 1) {
+        const idx = qState.indexOf(1);
+        note.classList.add("ok");
+        note.innerHTML = `<strong>Unique syndrome!</strong> Exactly 1 row and 1 column alarm fired → decoder uniquely pinpoints <strong>Q${idx}</strong> without ever reading Q${idx}.`;
+      } else if (weight === 2) {
+        note.classList.add("warn");
+        note.innerHTML = "<strong>Ambiguity (Degeneracy)!</strong> Two errors can cancel out on the same row/col or mimic the opposite diagonal pair — this is why real QEC decoders need probabilities (BP) and tie-breakers (OSD).";
+      } else {
+        note.classList.add("warn");
+        note.innerHTML = `<strong>${weight} simultaneous errors:</strong> High-weight noise overwhelms simple parity checks; statistical decoding is required.`;
+      }
+    }
+
+    document.querySelectorAll("#parityGrid .cell.data").forEach((c) => {
+      c.addEventListener("click", () => {
+        const i = Number(c.dataset.q);
+        qState[i] ^= 1;
+        updateParity();
+      });
+    });
+    document.getElementById("parityReset").addEventListener("click", () => {
+      qState.fill(0);
+      updateParity();
+    });
+
+    // --- LAB 2: [[18,4,4]] Interactive Lattice + BP Slider ---
     const svg = document.getElementById("latticeSvg");
     const NS = "http://www.w3.org/2000/svg";
-
-    // Build 18 data qubits (3x6 grid) + 14 check qubits (2x7 interleaved)
-    const dataNodes = [];
+    const dataQ = [];
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 6; c++) {
-        dataNodes.push({ id: r * 6 + c, x: 45 + c * 65, y: 45 + r * 75 });
+        dataQ.push({ id: r * 6 + c, x: 42 + c * 66, y: 42 + r * 74 });
       }
     }
-    const checkNodes = [];
+    const checkQ = [];
     for (let r = 0; r < 2; r++) {
       for (let c = 0; c < 7; c++) {
-        checkNodes.push({ id: r * 7 + c, x: 22 + c * 62, y: 82 + r * 75 });
+        checkQ.push({ id: r * 7 + c, x: 20 + c * 63, y: 79 + r * 74 });
       }
     }
+    // Precompute neighbor map (check -> nearby data qubits)
+    const checkNeighbors = checkQ.map((chk) =>
+      dataQ.filter((dq) => Math.hypot(chk.x - dq.x, chk.y - dq.y) < 58).map((dq) => dq.id)
+    );
 
-    const SCENARIOS = {
-      zero: {
-        faults: [],
-        fired: [],
-        activeTier: "tier0",
-        passed: [],
-        status: "Tier 0 hit: 0/70 detectors fired → immediate [0, 0, 0, 0]",
-        obs: [0, 0, 0, 0]
-      },
-      w1: {
-        faults: [7],
-        fired: [1, 8],
-        activeTier: "tier0",
-        passed: [],
-        status: "Tier 0 hit: 128-bit syndrome matched weight-1 LUT entry → exact fault recovered",
-        obs: [0, 1, 0, 0]
-      },
-      w2: {
-        faults: [3, 9],
-        fired: [2, 3, 9, 10],
-        activeTier: "tier0",
-        passed: [],
-        status: "Tier 0 hit: CZ two-qubit error matched top-K weight-2 LUT entry",
-        obs: [1, 0, 1, 0]
-      },
-      bp: {
-        faults: [1, 10, 15],
-        fired: [0, 1, 5, 11, 12],
-        activeTier: "tier1",
-        passed: ["tier0"],
-        status: "Tier 1 converged at BP iter 3/5: H·ê ≡ s (mod 2) satisfied",
-        obs: [0, 0, 1, 1]
-      },
-      osd: {
-        faults: [2, 6, 8, 13],
-        fired: [1, 2, 4, 6, 8, 9, 13],
-        activeTier: "tier2",
-        passed: ["tier0", "tier1"],
-        status: "Tier 1 stalled (degenerate loop) → Tier 2 128-bit GF(2) RREF OSD-CS resolved",
-        obs: [1, 1, 0, 1]
-      }
-    };
+    let activeFaults = new Set();
+    let forceSymmetric = false;
 
-    function renderScenario(key) {
-      const s = SCENARIOS[key];
+    function renderLattice() {
       svg.innerHTML = "";
+      const firedChecks = new Set();
+      checkNeighbors.forEach((nbrs, cid) => {
+        let parity = 0;
+        nbrs.forEach((qid) => { if (activeFaults.has(qid)) parity ^= 1; });
+        if (parity === 1) firedChecks.add(cid);
+      });
 
-      // Edges from checks to nearby data qubits
-      checkNodes.forEach((chk) => {
-        dataNodes.forEach((dq) => {
-          const dist = Math.hypot(chk.x - dq.x, chk.y - dq.y);
-          if (dist < 60) {
-            const line = document.createElementNS(NS, "line");
-            line.setAttribute("x1", chk.x);
-            line.setAttribute("y1", chk.y);
-            line.setAttribute("x2", dq.x);
-            line.setAttribute("y2", dq.y);
-            const lit = s.fired.includes(chk.id) && s.faults.includes(dq.id);
-            line.setAttribute("stroke", lit ? "#fb7185" : "#1e293b");
-            line.setAttribute("stroke-width", lit ? "2" : "1");
-            svg.appendChild(line);
-          }
+      // Draw edges
+      checkQ.forEach((chk, cid) => {
+        checkNeighbors[cid].forEach((qid) => {
+          const dq = dataQ[qid];
+          const line = document.createElementNS(NS, "line");
+          line.setAttribute("x1", chk.x);
+          line.setAttribute("y1", chk.y);
+          line.setAttribute("x2", dq.x);
+          line.setAttribute("y2", dq.y);
+          const lit = activeFaults.has(qid) && firedChecks.has(cid);
+          line.setAttribute("stroke", lit ? "#c2410c" : "#e4e0d8");
+          line.setAttribute("stroke-width", lit ? "2.2" : "1.1");
+          svg.appendChild(line);
         });
       });
 
-      // Data qubits
-      dataNodes.forEach((dq) => {
-        const faulted = s.faults.includes(dq.id);
+      // Draw data qubits (clickable)
+      dataQ.forEach((dq) => {
+        const isFault = activeFaults.has(dq.id);
+        const g = document.createElementNS(NS, "g");
+        g.style.cursor = "pointer";
         const c = document.createElementNS(NS, "circle");
         c.setAttribute("cx", dq.x);
         c.setAttribute("cy", dq.y);
-        c.setAttribute("r", faulted ? 11 : 9);
-        c.setAttribute("fill", faulted ? "#fbbf24" : "#38bdf8");
-        c.setAttribute("stroke", "#0f172a");
+        c.setAttribute("r", isFault ? 11.5 : 9.5);
+        c.setAttribute("fill", isFault ? "#c2410c" : "#1d4ed8");
+        c.setAttribute("stroke", "#ffffff");
         c.setAttribute("stroke-width", "2");
-        svg.appendChild(c);
+        g.appendChild(c);
+
+        const t = document.createElementNS(NS, "text");
+        t.setAttribute("x", dq.x);
+        t.setAttribute("y", dq.y + 3.5);
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("font-size", "8.5");
+        t.setAttribute("font-family", "ui-monospace, monospace");
+        t.setAttribute("fill", "#ffffff");
+        t.textContent = dq.id;
+        g.appendChild(t);
+
+        g.addEventListener("click", () => {
+          forceSymmetric = false;
+          if (activeFaults.has(dq.id)) activeFaults.delete(dq.id);
+          else activeFaults.add(dq.id);
+          renderLattice();
+        });
+        svg.appendChild(g);
       });
 
-      // Check qubits
-      checkNodes.forEach((chk) => {
-        const fired = s.fired.includes(chk.id);
+      // Draw check qubits
+      checkQ.forEach((chk, cid) => {
+        const fired = firedChecks.has(cid);
         const r = document.createElementNS(NS, "rect");
         r.setAttribute("x", chk.x - 7);
         r.setAttribute("y", chk.y - 7);
         r.setAttribute("width", 14);
         r.setAttribute("height", 14);
         r.setAttribute("rx", 3);
-        r.setAttribute("fill", fired ? "#fb7185" : "#334155");
-        r.setAttribute("stroke", fired ? "#fecdd3" : "#64748b");
-        r.setAttribute("stroke-width", "1.5");
+        r.setAttribute("fill", fired ? "#c2410c" : "#e4e4e7");
+        r.setAttribute("stroke", fired ? "#7c2d12" : "#a1a1aa");
+        r.setAttribute("stroke-width", "1.3");
         svg.appendChild(r);
       });
 
-      // Cascade state
-      ["tier0", "tier1", "tier2"].forEach((id) => {
-        const el = document.getElementById(id);
-        el.classList.remove("active", "passed");
-        if (id === s.activeTier) el.classList.add("active");
-        else if (s.passed.includes(id)) el.classList.add("passed");
+      updateStages(firedChecks.size);
+      renderBPBars();
+    }
+
+    function updateStages(numFired) {
+      const w = activeFaults.size;
+      const st = ["st0", "st1", "st2"];
+      st.forEach((id) => {
+        document.getElementById(id).className = "stage";
+        document.getElementById(id + "Tag").textContent = "IDLE";
       });
 
-      document.getElementById("simStatus").textContent = s.status;
-      const obsWrap = document.getElementById("obsBits");
-      obsWrap.innerHTML = s.obs
-        .map((v, idx) => `<span class="obs-bit ${v ? "flipped" : ""}">L${idx}: ${v}</span>`)
+      if (w === 0 || (w <= 2 && !forceSymmetric)) {
+        document.getElementById("st0").classList.add("resolved");
+        document.getElementById("st0Tag").textContent = w === 0 ? "ZERO HIT" : `LUT HIT (w=${w})`;
+      } else if (!forceSymmetric && w <= 4) {
+        document.getElementById("st0").classList.add("skipped");
+        document.getElementById("st0Tag").textContent = "MISS";
+        document.getElementById("st1").classList.add("resolved");
+        document.getElementById("st1Tag").textContent = `CONVERGED (${numFired} checks)`;
+      } else {
+        document.getElementById("st0").classList.add("skipped");
+        document.getElementById("st0Tag").textContent = "MISS";
+        document.getElementById("st1").classList.add("skipped");
+        document.getElementById("st1Tag").textContent = "STALLED";
+        document.getElementById("st2").classList.add("resolved");
+        document.getElementById("st2Tag").textContent = "OSD SOLVED";
+      }
+    }
+
+    function renderBPBars() {
+      const iter = Number(document.getElementById("bpSlider").value);
+      document.getElementById("bpIterLabel").textContent = `Iter ${iter} / 5`;
+      const container = document.getElementById("beliefBars");
+      const faultsArr = Array.from(activeFaults).slice(0, 4);
+      const displayIds = faultsArr.length ? faultsArr : [0, 7, 12];
+      // Add one clean neighbor for contrast
+      const cleanId = [1, 2, 3, 4, 5].find((x) => !activeFaults.has(x)) ?? 17;
+      if (!displayIds.includes(cleanId) && displayIds.length < 4) displayIds.push(cleanId);
+
+      container.innerHTML = displayIds
+        .map((qid) => {
+          const isFault = activeFaults.has(qid);
+          let conf = 8;
+          if (isFault) {
+            conf = forceSymmetric
+              ? Math.min(62, 18 + iter * 8) // stalled in symmetric tie
+              : Math.min(97, 18 + iter * 16);
+          } else {
+            conf = Math.max(3, 15 - iter * 2);
+          }
+          return `
+            <div class="b-row">
+              <span>Qubit ${qid}</span>
+              <div class="b-track"><div class="b-fill ${isFault ? "hot" : ""}" style="width:${conf}%"></div></div>
+              <span>${conf}%</span>
+            </div>`;
+        })
         .join("");
     }
 
-    document.getElementById("simControls").addEventListener("click", (e) => {
-      const btn = e.target.closest(".sim-btn");
-      if (!btn) return;
-      document.querySelectorAll(".sim-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderScenario(btn.dataset.mode);
+    document.getElementById("bpSlider").addEventListener("input", renderBPBars);
+    document.getElementById("btnClearLattice").addEventListener("click", () => {
+      activeFaults = new Set();
+      forceSymmetric = false;
+      renderLattice();
+    });
+    document.getElementById("btnRandom1").addEventListener("click", () => {
+      forceSymmetric = false;
+      activeFaults = new Set([Math.floor(Math.random() * 18)]);
+      renderLattice();
+    });
+    document.getElementById("btnRandom3").addEventListener("click", () => {
+      forceSymmetric = false;
+      activeFaults = new Set();
+      while (activeFaults.size < 3) activeFaults.add(Math.floor(Math.random() * 18));
+      renderLattice();
+    });
+    document.getElementById("btnHardLoop").addEventListener("click", () => {
+      forceSymmetric = true;
+      activeFaults = new Set([1, 2, 7, 8, 13]);
+      renderLattice();
     });
 
-    renderScenario("zero");
+    // --- LAB 3: Bit MAE vs Shot LER ---
+    const obsErr = [0, 1, 0, 0];
+    function renderObs() {
+      document.querySelectorAll("#obsToggles .obs-btn").forEach((b) => {
+        const i = Number(b.dataset.o);
+        b.classList.toggle("wrong", obsErr[i] === 1);
+        b.textContent = `L${i}: ${obsErr[i] ? "Wrong" : "Correct"}`;
+      });
+      const wrongCount = obsErr.reduce((a, b) => a + b, 0);
+      document.getElementById("bitMaeOut").textContent = (wrongCount / 4).toFixed(3);
+      document.getElementById("shotLerOut").textContent = (wrongCount > 0 ? 1 : 0).toFixed(3);
+    }
+    document.querySelectorAll("#obsToggles .obs-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        const i = Number(b.dataset.o);
+        obsErr[i] ^= 1;
+        renderObs();
+      });
+    });
+
+    updateParity();
+    renderLattice();
+    renderObs();
   </script>
 </body>
 </html>
