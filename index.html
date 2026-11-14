@@ -29,7 +29,7 @@
       background: var(--bg);
       color: var(--ink);
       font-family: var(--sans);
-      line-height: 1.7;
+      line-height: 1.72;
       font-size: 16.5px;
       -webkit-font-smoothing: antialiased;
     }
@@ -38,7 +38,7 @@
     a:hover { color: #1e40af; }
 
     .article {
-      max-width: 820px;
+      max-width: 840px;
       margin: 0 auto;
       padding: 3rem 1.25rem 5rem;
     }
@@ -62,7 +62,7 @@
     }
 
     .deck {
-      font-size: 1.15rem;
+      font-size: 1.14rem;
       color: var(--muted);
       line-height: 1.55;
       margin-bottom: 1.5rem;
@@ -83,14 +83,14 @@
     h2 {
       font-family: var(--serif);
       font-size: 1.6rem;
-      margin: 2.75rem 0 0.75rem;
+      margin: 2.85rem 0 0.75rem;
       line-height: 1.25;
     }
 
     h3 {
       font-size: 1.05rem;
       font-weight: 700;
-      margin: 1.5rem 0 0.4rem;
+      margin: 1.4rem 0 0.45rem;
     }
 
     p { margin-bottom: 1.1rem; }
@@ -103,13 +103,38 @@
       border-radius: 4px;
     }
 
+    .notation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.85rem;
+      margin: 1.25rem 0 1.75rem;
+    }
+    .notation-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+    }
+    .notation-card .sym {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .notation-card .desc {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+      line-height: 1.45;
+    }
+
     /* Interactive Figures */
     .figure {
       background: var(--paper);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 1.35rem;
-      margin: 1.5rem 0 2rem;
+      margin: 1.5rem 0 2.15rem;
       box-shadow: 0 2px 10px rgba(24, 24, 27, 0.04);
     }
     .figure-title {
@@ -134,7 +159,7 @@
     }
     button {
       font-family: var(--sans);
-      font-size: 0.86rem;
+      font-size: 0.85rem;
       font-weight: 600;
       padding: 0.45rem 0.85rem;
       border-radius: 6px;
@@ -214,7 +239,68 @@
     .callout.warn { border-left-color: var(--error); background: var(--error-soft); }
     .callout.ok { border-left-color: var(--ok); background: var(--ok-soft); }
 
-    /* Lab 2: 18,4,4 Lattice + BP Slider */
+    /* Lab 2: Space-Time Detector Timeline */
+    .timeline-wrap {
+      overflow-x: auto;
+    }
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: 130px repeat(6, 1fr);
+      gap: 6px;
+      min-width: 560px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      align-items: center;
+    }
+    .tl-head {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+      padding-bottom: 4px;
+    }
+    .tl-label {
+      color: var(--muted);
+      font-size: 0.76rem;
+      padding-right: 6px;
+    }
+    .tl-cell {
+      height: 36px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.12s;
+    }
+    .tl-cell:hover { border-color: var(--accent); }
+    .tl-cell.data-err {
+      background: #fef3c7;
+      border-color: var(--warn);
+      color: var(--warn);
+      font-weight: 700;
+    }
+    .tl-cell.meas-err {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .tl-cell.det-fired {
+      background: var(--error);
+      border-color: var(--error);
+      color: #fff;
+      font-weight: 700;
+    }
+    .tl-cell.det-quiet {
+      background: #f4f4f5;
+      color: var(--faint);
+      cursor: default;
+    }
+
+    /* Lab 3: 18,4,4 Lattice + BP Slider */
     .lab2-grid {
       display: grid;
       grid-template-columns: 1.15fr 1fr;
@@ -298,7 +384,21 @@
     .b-fill { height: 100%; background: var(--accent); transition: width 0.25s; }
     .b-fill.hot { background: var(--error); }
 
-    /* Lab 3: Bit MAE vs Shot LER */
+    /* Lab 4: GF(2) OSD Solver */
+    .osd-matrix {
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      background: #f8f7f3;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      overflow-x: auto;
+      margin-bottom: 0.85rem;
+      white-space: pre;
+      line-height: 1.55;
+    }
+
+    /* Lab 5: Bit MAE vs Shot LER */
     .obs-toggles {
       display: flex;
       flex-wrap: wrap;
@@ -382,15 +482,29 @@
     <!-- Section 1 -->
     <h2>1. The Core Problem: You Can't Peek Inside</h2>
     <p>
-      In a normal computer, if you want to check whether a memory bit got corrupted by a cosmic ray, you just read the bit.
-      In a quantum computer, <strong>reading a data qubit mid-calculation destroys the quantum state</strong>.
+      In a normal laptop, if you want to check whether a memory bit got corrupted, you just read the bit.
+      In a quantum computer, <strong>reading a data qubit mid-calculation collapses its quantum state</strong> and erases the computation.
     </p>
     <p>
-      To get around this, quantum error correction (QEC) spreads <strong>4 logical qubits</strong> (the useful information)
-      across <strong>18 physical data qubits</strong>, surrounded by <strong>14 helper "check" qubits</strong>.
-      We are only allowed to measure the helper qubits. Each helper tells us whether an <em>odd</em> number of its neighboring
-      data qubits flipped — without revealing <em>which</em> one flipped.
+      Instead, quantum error correction (QEC) spreads a small number of fragile <em>logical qubits</em> across many
+      <em>physical data qubits</em>, surrounded by helper <em>check qubits</em>. We are only allowed to measure the check qubits.
+      Each check tells us whether an <strong>odd</strong> number of its neighboring data qubits flipped — without revealing <em>which</em> one flipped.
     </p>
+
+    <div class="notation-grid">
+      <div class="notation-card">
+        <div class="sym">n = 18</div>
+        <div class="desc"><strong>Physical Data Qubits</strong> storing the encoded quantum state (+ 14 check qubits = 32 total).</div>
+      </div>
+      <div class="notation-card">
+        <div class="sym">k = 4</div>
+        <div class="desc"><strong>Logical Qubits</strong> (<code>L0</code>–<code>L3</code>) — the 4 protected bits we must decode accurately.</div>
+      </div>
+      <div class="notation-card">
+        <div class="sym">d = 4</div>
+        <div class="desc"><strong>Code Distance</strong> — takes 4 coordinated errors to fool the code (3 under circuit-level noise).</div>
+      </div>
+    </div>
 
     <div class="figure">
       <div class="figure-title">Interactive Lab 1 · The Parity-Check Intuition</div>
@@ -425,25 +539,52 @@
     </div>
 
     <!-- Section 2 -->
-    <h2>2. Scaling Up to the <code>[[18, 4, 4]]</code> Competition Circuit</h2>
+    <h2>2. Why Time Matters: 5 Rounds = 70 Detector Alarms</h2>
     <p>
-      In the <a href="https://www.kaggle.com/competitions/quantum-error-correction-decoder" target="_blank" rel="noopener">Kaggle QEC Decoder Hackathon</a>
-      (hosted by NBI/NQCP, NVIDIA, Riverlane, DTU Physics, QMATH, and DeiC), the real circuit runs <strong>5 noisy rounds</strong>
-      under SI1000 circuit-level noise (<em>p</em> = 0.002), producing <strong>70 binary detector alarms</strong> (<code>D0</code>–<code>D69</code>)
-      per shot. From those 70 alarms, our decoder must predict whether each of the <strong>4 logical observables</strong> (<code>L0</code>–<code>L3</code>) flipped.
+      In a real quantum circuit, not only can data qubits flip — <strong>the check measurements themselves can lie</strong>
+      (under SI1000 noise at <em>p</em> = 0.002, measurements fail with probability 5<em>p</em> = 1.0%!).
+      To tell a real qubit flip apart from a glitchy measurement, the circuit repeats the checks for <strong>5 rounds</strong>.
     </p>
     <p>
-      The catch? Competition rules strictly forbid using existing QEC decoder packages (<code>pymatching</code>, <code>ldpc</code>,
-      <code>stimbposd</code>, <code>beliefmatching</code>, <code>tesseract-decoder</code>, <code>fusion-blossom</code>).
-      Everything in <a href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026/blob/main/handin/decoder.py" target="_blank" rel="noopener"><code>handin/decoder.py</code></a>
-      is implemented using only <code>numpy</code>, <code>scipy</code>, <code>numba</code>, and <code>stim</code>.
+      Instead of feeding raw check readings to the decoder, <code>Stim</code> computes <strong>detectors</strong>:
+      <code>Detector(t) = Check(t) XOR Check(t−1)</code>. A <code>1</code> simply means <em>"something changed since the previous round."</em>
+      Across 5 rounds plus initialization and final readout, that gives exactly <strong>70 detector bits</strong> (<code>D0</code>–<code>D69</code>) per shot.
     </p>
 
     <div class="figure">
-      <div class="figure-title">Interactive Lab 2 · Click Qubits on the [[18, 4, 4]] Lattice</div>
+      <div class="figure-title">Interactive Lab 2 · Space-Time Detector Timeline</div>
       <p class="figure-caption">
-        Click any <strong>blue data qubit</strong> below to inject/remove a physical fault (or use the preset buttons).
-        Then drag the <strong>BP Iteration slider</strong> to see how Belief Propagation passes confidence votes before falling back to GF(2) OSD.
+        Click cells in the <strong>Data Error</strong> or <strong>Measurement Glitch</strong> rows (or use the preset buttons) to see
+        why a real qubit flip fires <strong>1 detector</strong>, while a faulty measurement fires <strong>2 consecutive detectors</strong> in time.
+      </p>
+      <div class="btn-row">
+        <button id="tlReset">Clear Timeline</button>
+        <button id="tlPresetData">Demo: Data Flip at t=2</button>
+        <button id="tlPresetMeas">Demo: Measurement Glitch at t=2</button>
+      </div>
+      <div class="timeline-wrap">
+        <div class="timeline-grid" id="timelineGrid"></div>
+      </div>
+      <div class="callout" id="tlNote" style="margin-top:0.9rem;">
+        Click any round cell in the top two rows to toggle a physical error and watch the detector alarms respond.
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <h2>3. Inside Our 3-Stage Decoder Cascade</h2>
+    <p>
+      The <a href="https://www.kaggle.com/competitions/quantum-error-correction-decoder" target="_blank" rel="noopener">Kaggle QEC Decoder Hackathon</a>
+      (hosted by NBI/NQCP, NVIDIA, Riverlane, DTU Physics, QMATH, and DeiC) bans all existing QEC decoder packages
+      (<code>pymatching</code>, <code>ldpc</code>, <code>stimbposd</code>, <code>beliefmatching</code>, <code>tesseract-decoder</code>, <code>fusion-blossom</code>).
+      So <a href="https://github.com/Pushkar0997/qec-decoder-hackathon-2026/blob/main/handin/decoder.py" target="_blank" rel="noopener"><code>handin/decoder.py</code></a>
+      builds a 3-stage cascade from scratch using only <code>numpy</code>, <code>scipy</code>, <code>numba</code>, and <code>stim</code>:
+    </p>
+
+    <div class="figure">
+      <div class="figure-title">Interactive Lab 3 · Click Qubits on the [[18, 4, 4]] Lattice</div>
+      <p class="figure-caption">
+        Click any <strong>blue data qubit</strong> below to inject/remove a fault, then drag the <strong>BP Iteration slider</strong>
+        to see how Belief Propagation passes confidence votes before falling back to GF(2) OSD.
       </p>
 
       <div class="btn-row">
@@ -495,16 +636,39 @@
       </div>
     </div>
 
-    <!-- Section 3 -->
-    <h2>3. Why Kaggle Shows <code>0.04483</code> While Local Shows <code>0.08129</code></h2>
+    <!-- Section 4 -->
+    <h2>4. Breaking Ties When BP Stalls: GF(2) OSD</h2>
     <p>
-      A common point of confusion when reading QEC benchmarks is the difference between <strong>Per-Observable Bit MAE</strong>
-      and <strong>Shot-Level Logical Error Rate (LER)</strong>. Because this code protects 4 logical qubits at once, getting
-      1 of the 4 wrong counts as <code>0.25</code> error on Kaggle, but counts as <code>1.00</code> ("shot failed") in a strict shot-level check.
+      Belief Propagation is fast, but on loopy qLDPC graphs two different error patterns can look equally likely, causing BP
+      to oscillate without satisfying <code>H · ê ≡ s (mod 2)</code>. When that happens, <strong>Ordered Statistics Decoding (OSD)</strong>
+      takes BP's soft reliability scores, ranks the error mechanisms from least-reliable to most-reliable, and runs
+      <strong>128-bit packed binary Gaussian elimination (RREF)</strong> to guarantee a valid syndrome match.
     </p>
 
     <div class="figure">
-      <div class="figure-title">Interactive Lab 3 · Bit MAE vs. Shot-Level LER</div>
+      <div class="figure-title">Interactive Lab 4 · Step-by-Step GF(2) OSD Solver (Toy 3×5 Matrix)</div>
+      <p class="figure-caption">
+        Step through how OSD sorts columns by BP unreliability and uses binary XOR row-reduction to solve <code>H · ê = [1, 1, 0]ᵀ</code>:
+      </p>
+      <div class="btn-row" id="osdBtns">
+        <button class="active" data-step="0">1. Raw H &amp; BP Stalled</button>
+        <button data-step="1">2. Sort by Reliability</button>
+        <button data-step="2">3. GF(2) XOR Elimination</button>
+        <button data-step="3">4. Back-Substitute ê</button>
+      </div>
+      <div class="osd-matrix" id="osdMatrix"></div>
+      <div class="callout ok" id="osdNote"></div>
+    </div>
+
+    <!-- Section 5 -->
+    <h2>5. Why Kaggle Shows <code>0.04483</code> While Local Shows <code>0.08129</code></h2>
+    <p>
+      Because this code protects 4 logical qubits per shot, getting 1 of the 4 wrong counts as <code>0.25</code> error on Kaggle
+      (<strong>Per-Observable Bit MAE</strong>), whereas a strict shot-level check marks the entire shot as failed (<code>1.00</code>).
+    </p>
+
+    <div class="figure">
+      <div class="figure-title">Interactive Lab 5 · Bit MAE vs. Shot-Level LER</div>
       <p class="figure-caption">
         Click the 4 logical qubit predictions below to toggle whether our decoder got them right or wrong for a single shot:
       </p>
@@ -563,8 +727,8 @@
       </tbody>
     </table>
 
-    <!-- Section 4 -->
-    <h2>4. Engineering Constraints &amp; Honest Trade-Offs</h2>
+    <!-- Section 6 -->
+    <h2>6. Engineering Constraints &amp; Honest Trade-Offs</h2>
     <p>
       Getting this running reliably on an <strong>8 GB RAM dual-core i3 laptop</strong> without touching banned packages required
       several practical engineering choices:
@@ -589,8 +753,7 @@
     // --- LAB 1: 2x2 Parity Puzzle ---
     const qState = [0, 0, 0, 0];
     function updateParity() {
-      const cells = document.querySelectorAll("#parityGrid .cell.data");
-      cells.forEach((c) => {
+      document.querySelectorAll("#parityGrid .cell.data").forEach((c) => {
         const i = Number(c.dataset.q);
         c.classList.toggle("flipped", qState[i] === 1);
         c.innerHTML = `Q${i}<small>${qState[i] ? "FLIPPED" : "clean"}</small>`;
@@ -599,7 +762,6 @@
       const r1 = qState[2] ^ qState[3];
       const c0 = qState[0] ^ qState[2];
       const c1 = qState[1] ^ qState[3];
-
       const setChk = (id, label, val) => {
         const el = document.getElementById(id);
         el.classList.toggle("alarm", val === 1);
@@ -627,11 +789,9 @@
         note.innerHTML = `<strong>${weight} simultaneous errors:</strong> High-weight noise overwhelms simple parity checks; statistical decoding is required.`;
       }
     }
-
     document.querySelectorAll("#parityGrid .cell.data").forEach((c) => {
       c.addEventListener("click", () => {
-        const i = Number(c.dataset.q);
-        qState[i] ^= 1;
+        qState[Number(c.dataset.q)] ^= 1;
         updateParity();
       });
     });
@@ -640,7 +800,76 @@
       updateParity();
     });
 
-    // --- LAB 2: [[18,4,4]] Interactive Lattice + BP Slider ---
+    // --- LAB 2: Space-Time Detector Timeline ---
+    const tlDataErr = [0, 0, 0, 0, 0, 0];
+    const tlMeasErr = [0, 0, 0, 0, 0, 0];
+
+    function renderTimeline() {
+      const grid = document.getElementById("timelineGrid");
+      // Cumulative data state across rounds
+      const cumData = [];
+      let acc = 0;
+      for (let t = 0; t < 6; t++) {
+        acc ^= tlDataErr[t];
+        cumData.push(acc);
+      }
+      // Raw check = cumData[t] XOR tlMeasErr[t]
+      const rawCheck = cumData.map((d, t) => d ^ tlMeasErr[t]);
+      // Detector[t] = rawCheck[t] XOR rawCheck[t-1]
+      const det = rawCheck.map((c, t) => (t === 0 ? c : c ^ rawCheck[t - 1]));
+
+      let html = `<div class="tl-label"></div>`;
+      for (let t = 0; t < 6; t++) html += `<div class="tl-head">Round t=${t}</div>`;
+
+      html += `<div class="tl-label">Data Flip (click)</div>`;
+      for (let t = 0; t < 6; t++) {
+        html += `<div class="tl-cell ${tlDataErr[t] ? "data-err" : ""}" data-kind="data" data-t="${t}">${tlDataErr[t] ? "X FLIP" : "—"}</div>`;
+      }
+
+      html += `<div class="tl-label">Meas. Glitch (click)</div>`;
+      for (let t = 0; t < 6; t++) {
+        html += `<div class="tl-cell ${tlMeasErr[t] ? "meas-err" : ""}" data-kind="meas" data-t="${t}">${tlMeasErr[t] ? "GLITCH" : "—"}</div>`;
+      }
+
+      html += `<div class="tl-label">Detector Alarm (D)</div>`;
+      for (let t = 0; t < 6; t++) {
+        html += `<div class="tl-cell ${det[t] ? "det-fired" : "det-quiet"}">${det[t] ? "ALARM (1)" : "0"}</div>`;
+      }
+      grid.innerHTML = html;
+
+      grid.querySelectorAll(".tl-cell[data-kind]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const t = Number(el.dataset.t);
+          if (el.dataset.kind === "data") tlDataErr[t] ^= 1;
+          else tlMeasErr[t] ^= 1;
+          renderTimeline();
+        });
+      });
+
+      const firedCount = det.reduce((a, b) => a + b, 0);
+      const note = document.getElementById("tlNote");
+      note.className = "callout";
+      if (firedCount === 0) {
+        note.innerHTML = "<strong>Quiet timeline:</strong> No changes detected between consecutive rounds.";
+      } else if (tlMeasErr.some((x) => x === 1) && !tlDataErr.some((x) => x === 1)) {
+        note.classList.add("ok");
+        note.innerHTML = "<strong>Time-like pair:</strong> Notice how a single measurement glitch flips Check(t) wrong once and then flips back at t+1 — firing <strong>two adjacent detectors in time</strong>!";
+      } else {
+        note.classList.add("warn");
+        note.innerHTML = `<strong>${firedCount} detector alarm(s) active:</strong> A persistent data flip permanently shifts future check readings, so only the round where it first appeared fires a detector.`;
+      }
+    }
+    document.getElementById("tlReset").addEventListener("click", () => {
+      tlDataErr.fill(0); tlMeasErr.fill(0); renderTimeline();
+    });
+    document.getElementById("tlPresetData").addEventListener("click", () => {
+      tlDataErr.fill(0); tlMeasErr.fill(0); tlDataErr[2] = 1; renderTimeline();
+    });
+    document.getElementById("tlPresetMeas").addEventListener("click", () => {
+      tlDataErr.fill(0); tlMeasErr.fill(0); tlMeasErr[2] = 1; renderTimeline();
+    });
+
+    // --- LAB 3: [[18,4,4]] Interactive Lattice + BP Slider ---
     const svg = document.getElementById("latticeSvg");
     const NS = "http://www.w3.org/2000/svg";
     const dataQ = [];
@@ -655,7 +884,6 @@
         checkQ.push({ id: r * 7 + c, x: 20 + c * 63, y: 79 + r * 74 });
       }
     }
-    // Precompute neighbor map (check -> nearby data qubits)
     const checkNeighbors = checkQ.map((chk) =>
       dataQ.filter((dq) => Math.hypot(chk.x - dq.x, chk.y - dq.y) < 58).map((dq) => dq.id)
     );
@@ -672,7 +900,6 @@
         if (parity === 1) firedChecks.add(cid);
       });
 
-      // Draw edges
       checkQ.forEach((chk, cid) => {
         checkNeighbors[cid].forEach((qid) => {
           const dq = dataQ[qid];
@@ -688,7 +915,6 @@
         });
       });
 
-      // Draw data qubits (clickable)
       dataQ.forEach((dq) => {
         const isFault = activeFaults.has(dq.id);
         const g = document.createElementNS(NS, "g");
@@ -721,7 +947,6 @@
         svg.appendChild(g);
       });
 
-      // Draw check qubits
       checkQ.forEach((chk, cid) => {
         const fired = firedChecks.has(cid);
         const r = document.createElementNS(NS, "rect");
@@ -742,12 +967,10 @@
 
     function updateStages(numFired) {
       const w = activeFaults.size;
-      const st = ["st0", "st1", "st2"];
-      st.forEach((id) => {
+      ["st0", "st1", "st2"].forEach((id) => {
         document.getElementById(id).className = "stage";
         document.getElementById(id + "Tag").textContent = "IDLE";
       });
-
       if (w === 0 || (w <= 2 && !forceSymmetric)) {
         document.getElementById("st0").classList.add("resolved");
         document.getElementById("st0Tag").textContent = w === 0 ? "ZERO HIT" : `LUT HIT (w=${w})`;
@@ -772,7 +995,6 @@
       const container = document.getElementById("beliefBars");
       const faultsArr = Array.from(activeFaults).slice(0, 4);
       const displayIds = faultsArr.length ? faultsArr : [0, 7, 12];
-      // Add one clean neighbor for contrast
       const cleanId = [1, 2, 3, 4, 5].find((x) => !activeFaults.has(x)) ?? 17;
       if (!displayIds.includes(cleanId) && displayIds.length < 4) displayIds.push(cleanId);
 
@@ -782,7 +1004,7 @@
           let conf = 8;
           if (isFault) {
             conf = forceSymmetric
-              ? Math.min(62, 18 + iter * 8) // stalled in symmetric tie
+              ? Math.min(62, 18 + iter * 8)
               : Math.min(97, 18 + iter * 16);
           } else {
             conf = Math.max(3, 15 - iter * 2);
@@ -799,28 +1021,76 @@
 
     document.getElementById("bpSlider").addEventListener("input", renderBPBars);
     document.getElementById("btnClearLattice").addEventListener("click", () => {
-      activeFaults = new Set();
-      forceSymmetric = false;
-      renderLattice();
+      activeFaults = new Set(); forceSymmetric = false; renderLattice();
     });
     document.getElementById("btnRandom1").addEventListener("click", () => {
-      forceSymmetric = false;
-      activeFaults = new Set([Math.floor(Math.random() * 18)]);
-      renderLattice();
+      forceSymmetric = false; activeFaults = new Set([Math.floor(Math.random() * 18)]); renderLattice();
     });
     document.getElementById("btnRandom3").addEventListener("click", () => {
-      forceSymmetric = false;
-      activeFaults = new Set();
+      forceSymmetric = false; activeFaults = new Set();
       while (activeFaults.size < 3) activeFaults.add(Math.floor(Math.random() * 18));
       renderLattice();
     });
     document.getElementById("btnHardLoop").addEventListener("click", () => {
-      forceSymmetric = true;
-      activeFaults = new Set([1, 2, 7, 8, 13]);
-      renderLattice();
+      forceSymmetric = true; activeFaults = new Set([1, 2, 7, 8, 13]); renderLattice();
     });
 
-    // --- LAB 3: Bit MAE vs Shot LER ---
+    // --- LAB 4: GF(2) OSD Step-by-Step ---
+    const OSD_STEPS = [
+      {
+        mat:
+`Mechanisms:   e0    e1    e2    e3    e4   | s
+BP Error %:  12%   48%   45%    5%    8%   |
+-------------------------------------------+---
+Check 0:   [  1     1     0     1     0  ] | 1
+Check 1:   [  0     1     1     0     1  ] | 1
+Check 2:   [  1     0     1     0     0  ] | 0`,
+        note: "<strong>Step 1:</strong> BP stalled because e1 (48%) and e2 (45%) are tied in a loop. Hard-thresholding gives ê = [0,0,0,0,0], which fails H·ê = s."
+      },
+      {
+        mat:
+`Sorted (most likely errors FIRST -> Basis B):
+Columns:      e1    e2    e0    e4    e3   | s
+BP Error %:  48%   45%   12%    8%    5%   |
+-------------------------------------------+---
+Check 0:   [  1     0     1     0     1  ] | 1
+Check 1:   [  1     1     0     1     0  ] | 1
+Check 2:   [  0     1     1     0     0  ] | 0`,
+        note: "<strong>Step 2:</strong> OSD permutes columns so the least-reliable (highest error probability) mechanisms sit on the left to form the pivot basis B."
+      },
+      {
+        mat:
+`GF(2) XOR Row Reduction (Row1 ^= Row0, Row2 ^= Row1):
+Columns:      e1    e2    e0  | e4    e3   | s'
+--------------------------------+----------+---
+Pivot e1:  [  1     0     1   |  0     1 ] | 1
+Pivot e2:  [  0     1     1   |  1     1 ] | 0
+Dep.  e0:  [  0     0     0   |  1     1 ] | 0`,
+        note: "<strong>Step 3:</strong> Using 128-bit packed XOR operations, Numba reduces the left columns to RREF. Notice e0 is linearly dependent, so e4 becomes the 3rd pivot."
+      },
+      {
+        mat:
+`Set non-basis (e0=0, e3=0) -> Solve basis pivots (e1, e2, e4):
+ê_sorted = [ e1=1, e2=0, e0=0, e4=0, e3=0 ]
+Back to original order: ê = [ 0, 1, 0, 0, 0 ]
+
+Verify: H · ê (mod 2) = [ 1, 1, 0 ] == s  ✓`,
+        note: "<strong>Step 4 (Solved!):</strong> OSD-0 fixes non-basis columns to 0 and solves the pivot bits in one pass, guaranteeing H·ê ≡ s (mod 2). OSD-CS then sweeps low-weight flips on non-basis bits for an even lower-cost solution."
+      }
+    ];
+    function renderOSD(step) {
+      document.getElementById("osdMatrix").textContent = OSD_STEPS[step].mat;
+      document.getElementById("osdNote").innerHTML = OSD_STEPS[step].note;
+    }
+    document.getElementById("osdBtns").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      document.querySelectorAll("#osdBtns button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderOSD(Number(btn.dataset.step));
+    });
+
+    // --- LAB 5: Bit MAE vs Shot LER ---
     const obsErr = [0, 1, 0, 0];
     function renderObs() {
       document.querySelectorAll("#obsToggles .obs-btn").forEach((b) => {
@@ -834,14 +1104,15 @@
     }
     document.querySelectorAll("#obsToggles .obs-btn").forEach((b) => {
       b.addEventListener("click", () => {
-        const i = Number(b.dataset.o);
-        obsErr[i] ^= 1;
+        obsErr[Number(b.dataset.o)] ^= 1;
         renderObs();
       });
     });
 
     updateParity();
+    renderTimeline();
     renderLattice();
+    renderOSD(0);
     renderObs();
   </script>
 </body>
