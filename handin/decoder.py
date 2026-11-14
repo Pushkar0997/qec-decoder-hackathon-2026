@@ -6,25 +6,34 @@ Allowed Stack: numpy, scipy, numba, stim (Zero banned QEC packages).
 """
 
 from __future__ import annotations
+
 import hashlib
+
+import numba
 import numpy as np
 import stim
 from numba import njit, prange
-
+from numpy.typing import NDArray
 
 # ============================================================================
 # 1. OFFICIAL DEM EXTRACTION (EXACT COMPETITION SPECIFICATION)
 # ============================================================================
 
-def problem_info(circuit: stim.Circuit) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def problem_info(
+    circuit: stim.Circuit,
+) -> tuple[NDArray[np.uint8], NDArray[np.uint8], NDArray[np.float64]]:
     """Returns H (detectors x mechanisms), L (observables x mechanisms) and p (probability of each mechanism)."""
     dem = circuit.detector_error_model()
     columns, priors = {}, []
     for instruction in dem.flattened():
+        if not isinstance(instruction, stim.DemInstruction):
+            continue
         if instruction.type != "error":
             continue
         detectors, observables = set(), set()
         for target in instruction.targets_copy():
+            if not isinstance(target, stim.DemTarget):
+                continue
             if target.is_relative_detector_id():
                 detectors ^= {target.val}
             elif target.is_logical_observable_id():
@@ -69,13 +78,20 @@ def _lowest_bit_index_64(x: np.uint64) -> int:
 
 @njit(cache=True)
 def _build_syndrome_lut(
-    col_lo: np.ndarray,
-    col_hi: np.ndarray,
-    obs_mask: np.ndarray,
-    llr: np.ndarray,
+    col_lo: NDArray[np.uint64],
+    col_hi: NDArray[np.uint64],
+    obs_mask: NDArray[np.uint8],
+    llr: NDArray[np.float32],
     top_k_w2: int,
     table_bits: int,
-):
+) -> tuple[
+    NDArray[np.uint64],
+    NDArray[np.uint64],
+    NDArray[np.float64],
+    NDArray[np.uint8],
+    NDArray[np.uint8],
+    np.uint64,
+]:
     """
     Precomputes an open-addressed hash table mapping 70-bit syndromes (lo, hi)
     to their minimum-LLR Weight-1 and Top-K Weight-2 error mechanisms.
@@ -99,7 +115,7 @@ def _build_syndrome_lut(
             continue
         c = llr[j]
         ob = obs_mask[j]
-        slot = _hash_128(s_lo, s_hi, mask)
+        slot = _hash_128(np.uint64(s_lo), np.uint64(s_hi), mask)
         while lut_w[slot] != 0:
             if lut_lo[slot] == s_lo and lut_hi[slot] == s_hi:
                 if c < lut_cost[slot]:
@@ -132,7 +148,7 @@ def _build_syndrome_lut(
                 continue
             c = c1 + llr[j2]
             ob = ob1 ^ obs_mask[j2]
-            slot = _hash_128(s_lo, s_hi, mask)
+            slot = _hash_128(np.uint64(s_lo), np.uint64(s_hi), mask)
             while lut_w[slot] != 0:
                 if lut_lo[slot] == s_lo and lut_hi[slot] == s_hi:
                     if c < lut_cost[slot]:
@@ -160,21 +176,24 @@ def _build_syndrome_lut(
 def _decode_single_shot(
     s_lo: np.uint64,
     s_hi: np.uint64,
-    syndrome: np.ndarray,
-    col_lo: np.ndarray,
-    col_hi: np.ndarray,
-    obs_mask: np.ndarray,
-    llr: np.ndarray,
-    chk_ptr: np.ndarray,
-    chk_var: np.ndarray,
-    var_edges: np.ndarray,
-    var_ptr: np.ndarray,
-    lut_lo: np.ndarray,
-    lut_hi: np.ndarray,
-    lut_cost: np.ndarray,
-    lut_obs: np.ndarray,
-    lut_w: np.ndarray,
+    syndrome: NDArray[np.uint8],
+    col_lo: NDArray[np.uint64],
+    col_hi: NDArray[np.uint64],
+    obs_mask: NDArray[np.uint8],
+    llr: NDArray[np.float32],
+    chk_ptr: NDArray[np.int32],
+    chk_var: NDArray[np.int32],
+    var_edges: NDArray[np.int32],
+    var_ptr: NDArray[np.int32],
+    lut_lo: NDArray[np.uint64],
+    lut_hi: NDArray[np.uint64],
+    lut_cost: NDArray[np.float64],
+    lut_obs: NDArray[np.uint8],
+    lut_w: NDArray[np.uint8],
     lut_mask: np.uint64,
+    msg_c2v: NDArray[np.float32],
+    msg_v2c: NDArray[np.float32],
+    post_llr: NDArray[np.float32],
     max_bp_iter: int,
     ms_scale: float,
     damping: float,
@@ -212,11 +231,9 @@ def _decode_single_shot(
     # --- STAGE 1: Damped Normalized Min-Sum Belief Propagation ---
     num_det = syndrome.shape[0]
     num_var = llr.shape[0]
-    num_edges = chk_var.shape[0]
 
-    msg_c2v = np.zeros(num_edges, dtype=np.float64)
-    msg_v2c = np.empty(num_edges, dtype=np.float64)
-    post_llr = np.empty(num_var, dtype=np.float64)
+    # Per-thread scratch buffers (allocated once in the batch kernel). Every
+    # slot used below is written before it is read, so no clearing is needed.
 
     for v in range(num_var):
         pv = llr[v]
@@ -332,9 +349,9 @@ def _decode_single_shot(
 
         if v_lo != 0 or v_hi != 0:
             if v_lo != 0:
-                p_bit = _lowest_bit_index_64(v_lo)
+                p_bit = _lowest_bit_index_64(np.uint64(v_lo))
             else:
-                p_bit = 64 + _lowest_bit_index_64(v_hi)
+                p_bit = 64 + _lowest_bit_index_64(np.uint64(v_hi))
 
             if n_basis < 64:
                 c_lo ^= np.uint64(1) << np.uint64(n_basis)
@@ -360,12 +377,11 @@ def _decode_single_shot(
             basis_pivot_bit[n_basis] = p_bit
             basis_col_idx[n_basis] = col
             n_basis += 1
-        else:
-            if n_non_basis < osd_w1:
-                non_basis_col[n_non_basis] = col
-                non_basis_dep_lo[n_non_basis] = c_lo
-                non_basis_dep_hi[n_non_basis] = c_hi
-                n_non_basis += 1
+        elif n_non_basis < osd_w1:
+            non_basis_col[n_non_basis] = col
+            non_basis_dep_lo[n_non_basis] = c_lo
+            non_basis_dep_hi[n_non_basis] = c_hi
+            n_non_basis += 1
 
         if n_basis == num_det and n_non_basis == osd_w1:
             break
@@ -461,38 +477,48 @@ def _decode_single_shot(
                 best_cost = cost
                 best_obs = obs
 
-    return best_obs
+    return np.uint8(best_obs)
 
 
 @njit(parallel=True, cache=True)
 def _decode_batch_kernel(
-    syndromes: np.ndarray,
-    col_lo: np.ndarray,
-    col_hi: np.ndarray,
-    obs_mask: np.ndarray,
-    llr: np.ndarray,
-    chk_ptr: np.ndarray,
-    chk_var: np.ndarray,
-    var_edges: np.ndarray,
-    var_ptr: np.ndarray,
-    lut_lo: np.ndarray,
-    lut_hi: np.ndarray,
-    lut_cost: np.ndarray,
-    lut_obs: np.ndarray,
-    lut_w: np.ndarray,
+    syndromes: NDArray[np.uint8],
+    col_lo: NDArray[np.uint64],
+    col_hi: NDArray[np.uint64],
+    obs_mask: NDArray[np.uint8],
+    llr: NDArray[np.float32],
+    chk_ptr: NDArray[np.int32],
+    chk_var: NDArray[np.int32],
+    var_edges: NDArray[np.int32],
+    var_ptr: NDArray[np.int32],
+    lut_lo: NDArray[np.uint64],
+    lut_hi: NDArray[np.uint64],
+    lut_cost: NDArray[np.float64],
+    lut_obs: NDArray[np.uint8],
+    lut_w: NDArray[np.uint8],
     lut_mask: np.uint64,
+    n_threads: int,
     max_bp_iter: int,
     ms_scale: float,
     damping: float,
     osd_w1: int,
     osd_w2: int,
-) -> np.ndarray:
+) -> NDArray[np.uint8]:
     """Parallel batch syndrome decoding across all shots."""
     n_shots = syndromes.shape[0]
     n_det = syndromes.shape[1]
+    num_var = llr.shape[0]
+    num_edges = chk_var.shape[0]
     preds = np.zeros((n_shots, 4), dtype=np.uint8)
 
+    # One reusable BP workspace per worker thread: avoids ~85 KB of per-shot
+    # allocation/zeroing, which otherwise dominated runtime on large batches.
+    msg_c2v_ws = np.zeros((n_threads, num_edges), dtype=np.float32)
+    msg_v2c_ws = np.zeros((n_threads, num_edges), dtype=np.float32)
+    post_llr_ws = np.zeros((n_threads, num_var), dtype=np.float32)
+
     for s in prange(n_shots):
+        tid = numba.get_thread_id()  # pyright: ignore[reportPrivateImportUsage]
         row = syndromes[s]
         s_lo = np.uint64(0)
         s_hi = np.uint64(0)
@@ -521,6 +547,9 @@ def _decode_batch_kernel(
             lut_obs,
             lut_w,
             lut_mask,
+            msg_c2v_ws[tid],
+            msg_v2c_ws[tid],
+            post_llr_ws[tid],
             max_bp_iter,
             ms_scale,
             damping,
@@ -539,16 +568,20 @@ def _decode_batch_kernel(
 # 4. COMPILED CIRCUIT DECODER & OFFICIAL `decode` ENTRYPOINT
 # ============================================================================
 
+# Shots per worker batch: caps peak RAM (~10k x 70 bytes of syndromes plus
+# per-thread BP scratch) independently of the submission size.
+CHUNK_SHOTS = 10_000
+
 class CompiledCircuitDecoder:
     """Precomputes bitpacked Tanner graph and Weight-1/2 Syndrome LUT for a Stim circuit."""
 
     def __init__(
         self,
         circuit: stim.Circuit | None = None,
-        H: np.ndarray | None = None,
-        L: np.ndarray | None = None,
-        p: np.ndarray | None = None,
-        max_bp_iter: int = 25,
+        H: NDArray[np.uint8] | None = None,
+        L: NDArray[np.uint8] | None = None,
+        p: NDArray[np.float64] | None = None,
+        max_bp_iter: int = 5,
         ms_scale: float = 0.78,
         damping: float = 0.20,
         osd_w1: int = 64,
@@ -558,12 +591,14 @@ class CompiledCircuitDecoder:
     ):
         if circuit is not None:
             H, L, p = problem_info(circuit)
-        assert H is not None and L is not None and p is not None
+        assert H is not None
+        assert L is not None
+        assert p is not None
 
         self.H = np.ascontiguousarray(H, dtype=np.uint8)
         self.L = np.ascontiguousarray(L, dtype=np.uint8)
         self.p = np.clip(np.ascontiguousarray(p, dtype=np.float64), 1e-12, 1.0 - 1e-12)
-        self.llr = np.ascontiguousarray(np.log((1.0 - self.p) / self.p), dtype=np.float64)
+        self.llr = np.ascontiguousarray(np.log((1.0 - self.p) / self.p), dtype=np.float32)
 
         self.max_bp_iter = max_bp_iter
         self.ms_scale = ms_scale
@@ -630,9 +665,10 @@ class CompiledCircuitDecoder:
             lut_bits,
         )
 
-    def decode(self, detector_events: np.ndarray) -> np.ndarray:
-        """Decodes (N_shots, 70) detector_events -> (N_shots, 4) uint8 observable predictions."""
-        syndromes_u8 = np.ascontiguousarray(detector_events, dtype=np.uint8)
+    def _decode_chunk(
+        self, syndromes_u8: NDArray[np.uint8]
+    ) -> NDArray[np.uint8]:
+        """Runs the parallel Numba kernel over one contiguous block of shots."""
         return _decode_batch_kernel(
             syndromes_u8,
             self.col_lo,
@@ -649,6 +685,7 @@ class CompiledCircuitDecoder:
             self.lut_obs,
             self.lut_w,
             self.lut_mask,
+            int(numba.get_num_threads()),
             self.max_bp_iter,
             self.ms_scale,
             self.damping,
@@ -656,11 +693,40 @@ class CompiledCircuitDecoder:
             self.osd_w2,
         )
 
+    def decode(
+        self, detector_events: NDArray[np.uint8] | NDArray[np.bool_]
+    ) -> NDArray[np.uint8]:
+        """
+        Decodes (N_shots, 70) detector_events -> (N_shots, 4) uint8 predictions.
+
+        Shots are processed in fixed-size chunks so peak resident memory stays
+        bounded (~10k shots per worker batch) even for 200k-row submissions.
+        """
+        syndromes_u8 = np.ascontiguousarray(detector_events, dtype=np.uint8)
+        if syndromes_u8.ndim != 2 or syndromes_u8.shape[1] != self.H.shape[0]:
+            raise ValueError(
+                f"detector_events must be 2D with {self.H.shape[0]} detectors, "
+                f"got shape {syndromes_u8.shape}"
+            )
+
+        n_shots = syndromes_u8.shape[0]
+        if n_shots <= CHUNK_SHOTS:
+            return self._decode_chunk(syndromes_u8)
+
+        preds = np.empty((n_shots, 4), dtype=np.uint8)
+        for start in range(0, n_shots, CHUNK_SHOTS):
+            stop = min(start + CHUNK_SHOTS, n_shots)
+            preds[start:stop] = self._decode_chunk(syndromes_u8[start:stop])
+        return preds
+
 
 _CIRCUIT_CACHE: dict[str, CompiledCircuitDecoder] = {}
 
 
-def decode(circuit: stim.Circuit, detector_events: np.ndarray) -> np.ndarray:
+def decode(
+    circuit: stim.Circuit,
+    detector_events: NDArray[np.uint8] | NDArray[np.bool_],
+) -> NDArray[np.uint8]:
     """
     Competition Entrypoint:
     Accepts a stim.Circuit and (N_shots, 70) detector_events array.

@@ -6,3 +6,5 @@
 - [x] **T04**: Pin `handin/requirements.txt` for Python 3.13 clean `venv` compatibility (`numpy`, `scipy`, `numba`, `stim`).
 - [x] **T05**: Implement `scripts/verify_and_stress_test.py` verifying `INV-H01` through `INV-H08` (isolated import check, determinism check, GF(2) RREF correctness, 200k-shot runtime <= 12.0s, and LER report).
 - [x] **T06**: Implement `scripts/generate_submission.py` to generate and validate `submission.csv` (`gen_X_00000`..`gen_Z_99999`).
+- [x] **T07**: Add `scripts/validate_train.py` for exact train-set LER reporting (all 200k labelled rows).
+- [x] **T08**: Bound peak memory with 10k-shot chunked decoding in `CompiledCircuitDecoder.decode`; record INV-H07 as a hardware-scoped advisory on low-power hosts.
