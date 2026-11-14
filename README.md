@@ -1,61 +1,52 @@
 # QEC Decoder Hackathon 2026 — `[[18, 4, 4]]` qLDPC Syndrome Decoder
 
-A fast, deterministic, **from-scratch** quantum error correction (QEC) decoder built for the [Quantum Error Correction: Decoder Hackathon](https://www.kaggle.com/competitions/quantum-error-correction-decoder) (November 2026), hosted by the Niels Bohr Institute / NQCP (University of Copenhagen), NVIDIA, Riverlane, DTU Physics, QMATH, and DeiC.
+A constrained, rule-compliant **BP + OSD** syndrome decoder built for the [Quantum Error Correction: Decoder Hackathon](https://www.kaggle.com/competitions/quantum-error-correction-decoder) (November 2026), hosted by the Niels Bohr Institute / NQCP (University of Copenhagen), NVIDIA, Riverlane, DTU Physics, QMATH, and DeiC.
 
-> **Benchmark Highlight:** Achieved **`0.04446` Public / `0.04483` Private** per-observable Logical Error Rate (MAE) on Kaggle (Late Submission) — a **~6.5× error reduction** compared to the `~0.29` all-zeros baseline, written completely without external QEC decoder libraries (`pymatching`, `ldpc`, `stimbposd`, etc.).
-
----
-
-## 1. What Is This Problem? (No PhD Required)
-
-Quantum computers are notoriously noisy: every gate, reset, or measurement has a small chance of flipping a qubit's state. To protect quantum information, we encode **4 logical qubits** (the data we actually care about) across **18 physical data qubits** plus **14 helper ("check") qubits** — a `[[18, 4, 4]]` quantum Low-Density Parity-Check (**qLDPC**) code.
-
-Think of it like a Sudoku puzzle with parity checks:
-1. You aren't allowed to look directly at the 4 logical qubits while a computation runs (that would destroy the quantum state).
-2. Instead, over **5 rounds**, the 14 check qubits report **70 binary "detector" alarms** (`D0`–`D69`): `0` means everything looks consistent, `1` means an error happened nearby in space or time.
-3. **The Decoder's Job:** Given only those 70 alarm bits, deduce which of the **4 logical qubits** (`L0`–`L3`) got flipped by the end of the experiment — and do it accurately and fast across **200,000 test runs** (`100,000` X-basis + `100,000` Z-basis).
+> **Kaggle Score (Late Submission):** **`0.04446` Public / `0.04483` Private** per-observable MAE (~6.5× lower than the `~0.29` all-zeros baseline), implemented using only `numpy`, `scipy`, `numba`, and `stim` — with zero external QEC decoder packages (`pymatching`, `ldpc`, `stimbposd`, etc.).
 
 ---
 
-## 2. How Our Decoder Works
+## 1. The Problem in Plain English
 
-Because competition rules strictly forbid importing pre-built QEC decoders (`pymatching`, `ldpc`, `stimbposd`, `beliefmatching`, `tesseract-decoder`, `fusion-blossom`), every component in [`handin/decoder.py`](handin/decoder.py) is implemented from scratch using `numpy`, `scipy`, `numba`, and `stim`:
+Quantum bits (qubits) are fragile: quantum gates, resets, and measurements all fail at small probabilities. To protect data, this experiment encodes **4 logical qubits** across **18 physical data qubits** monitored by **14 check qubits** — a `[[18, 4, 4]]` quantum Low-Density Parity-Check (**qLDPC**) code.
+
+1. You cannot directly read the 4 logical qubits mid-computation without collapsing them.
+2. Instead, over **5 rounds** of SI1000 circuit-level noise ($p = 0.002$), the check qubits emit **70 binary "detector" alarms** (`D0`–`D69`): `0` if local checks agree, `1` if an error occurred nearby in space or time.
+3. **The Decoder's Task:** Given those 70 alarm bits, predict which of the **4 logical observables** (`L0`–`L3`) flipped by the end of the circuit across **200,000 test shots** (`100,000` X-basis + `100,000` Z-basis).
+
+---
+
+## 2. Implementation Architecture
+
+Competition rules forbid importing existing QEC decoder packages (`pymatching`, `ldpc`, `stimbposd`, `beliefmatching`, `tesseract-decoder`, `fusion-blossom`). [`handin/decoder.py`](handin/decoder.py) implements a standard BP + OSD cascade in Numba-compiled Python:
 
 ```text
   70-bit Detector Syndrome (s)
              │
              ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ 1. Stim Detector Error Model (DEM) Extraction           │
-  │    Maps circuit noise into H (70 × M), L (4 × M), & p   │
-  └──────────┬──────────────────────────────────────────────┘
+  1. Stim DEM Extraction: circuit.detector_error_model() -> (H, L, priors)
              │
              ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ 2. Numba-Accelerated float32 Belief Propagation (BP)    │
-  │    5-iteration message passing with per-thread          │
-  │    reusable workspaces (zero per-shot allocations)      │
-  └──────────┬────────────────────────┬─────────────────────┘
-             │ Converged (H·ê = s)    │ Non-converged
-             ▼                        ▼
-      Compute L·ê (mod 2)   ┌───────────────────────────────┐
-                            │ 3. Ordered Statistics Decoding │
-                            │    GF(2) Gaussian elimination │
-                            │    ordered by BP reliability  │
-                            └─────────┬─────────────────────┘
-                                      │
-                                      ▼
-                            4-bit Prediction (L0..L3)
+  2. Fast-Path Lookup: zero-syndrome + open-addressed weight-1/2 syndrome LUT
+             │ (misses)
+             ▼
+  3. Numba float32 Min-Sum BP: 5 iterations, pre-allocated per-thread workspaces
+             │ (if H·ê != s)
+             ▼
+  4. 128-bit Packed GF(2) OSD: RREF ordered by BP reliability + limited comb. sweep
+             │
+             ▼
+  4-bit Observable Prediction (L0..L3)
 ```
 
-### Key Engineering Decisions
-* **Zero Per-Shot Memory Allocations:** Uses `float32` BP messages/LLRs and pre-allocated per-thread workspaces inside `@njit` kernels, plus **10,000-shot chunked decoding** in `CompiledCircuitDecoder.decode` so the full 200,000-shot pipeline runs comfortably even on an **8 GB RAM** laptop.
-* **5-Iteration BP Sweet Spot:** Empirically matched or beat 25-iteration BP accuracy while cutting runtime in half (`2.1×` speedup).
-* **100% Deterministic & Offline-Ready:** Fixed execution order with zero internet calls, pinned dependencies in [`handin/requirements.txt`](handin/requirements.txt), and strict adherence to the [`CONTRACT.md`](CONTRACT.md) invariants.
+### Key Engineering Details
+* **Bounded-Memory Execution:** Uses `float32` BP messages/LLRs, per-thread reusable workspaces (zero per-shot allocations), and **10,000-shot chunked decoding** so the full 200k-shot run fits inside an **8 GB RAM** laptop.
+* **Import-Time JIT Warmup:** Numba `@njit` kernels are compiled on dummy data during `import decoder` (before the competition timer starts).
+* **100% Deterministic:** Fixed execution order with no internet calls and exact pinned versions in [`handin/requirements.txt`](handin/requirements.txt).
 
 ---
 
-## 3. Verified Results
+## 3. Verified Results & Honest Caveats
 
 | Evaluation Metric | Score | Notes |
 | :--- | :--- | :--- |
@@ -65,7 +56,12 @@ Because competition rules strictly forbid importing pre-built QEC decoders (`pym
 | **Local `train.csv` Shot LER (200k shots)** | `0.081285` | Fraction of shots with $\ge 1$ wrong logical bit |
 | **Local Sampled Shot LER (200k shots)** | `0.079915` | Freshly sampled from `X_circuit.stim` & `Z_circuit.stim` |
 
-*(Note: Kaggle scores per-observable-bit MAE $\frac{1}{4N}\sum |\hat{\ell} - \ell|$, while local validation logs shot-level LER — whether any of the 4 logical bits failed — explaining the ~1.8× ratio between `0.0448` and `0.0813`.)*
+*(Kaggle scores per-observable-bit MAE $\frac{1}{4N}\sum |\hat{\ell} - \ell|$, while local validation logs shot-level LER — whether any of the 4 logical bits failed — explaining the ~1.8× ratio between `0.0448` and `0.0813`.)*
+
+### Known Limitations & Headroom
+* **Runtime on Low-Power Hardware:** Runs in ~50 s for 200k shots on a 1.2 GHz dual-core i3-10th Gen laptop (above the 15.4 s judging target on 48 EPYC vCPUs + B200, where multi-threading closes much of that gap, though hard OSD-CS shots remain the bottleneck).
+* **Hyperparameter Tuning:** Constants (`ms_scale=0.78`, `damping=0.20`, `osd_w1=64`, `osd_w2=20`) were tuned on sampled shots; full sensitivity curves across BP iterations and pure LUT+OSD paths are not yet plotted.
+* **Scope:** Built strictly as a self-contained competition artifact, separate from [`Pushkar0997/qecscreen`](https://github.com/Pushkar0997/qecscreen).
 
 ---
 
@@ -73,50 +69,47 @@ Because competition rules strictly forbid importing pre-built QEC decoders (`pym
 
 ```text
 qec-decoder-hackathon-2026/
-├── CONTRACT.md                     # Immutable system & API invariants
-├── AGENT_LOG.md                    # Multi-agent handover & verification log
+├── CONTRACT.md                     # Decoder API, determinism, and dependency invariants
+├── AGENT_LOG.md                    # Verification and run history
 ├── data/
 │   ├── X_circuit.stim              # X-basis 5-round SI1000 noisy circuit (p = 0.002)
 │   └── Z_circuit.stim              # Z-basis 5-round SI1000 noisy circuit (p = 0.002)
-│   # (train.csv, test.csv, sample_submission.csv are git-ignored locally)
 ├── handin/
 │   ├── decoder.py                  # Standalone decode(circuit, detector_events) module
-│   └── requirements.txt            # Exact pinned allowed packages (numpy, scipy, numba, stim)
+│   └── requirements.txt            # Pinned allowed packages (numpy, scipy, numba, stim)
 ├── scripts/
+│   ├── ablation_benchmark.py       # Per-basis MAE, shot LER, and throughput benchmark
 │   ├── verify_and_stress_test.py   # Banned-import AST check, parity, determinism & LER gates
-│   ├── validate_train.py           # Full 200k-row train.csv LER benchmark
+│   ├── validate_train.py           # Full 200k-row train.csv LER check
 │   └── generate_submission.py      # Generates and validates 200k-row submission.csv
+├── tests/
+│   └── test_decoder.py             # Unit tests for contract, determinism, and AST compliance
 └── spec/
-    ├── architecture.md             # Decoder math, GF(2) OSD & complexity budget
-    └── tasks.md                    # Spec-Driven Development (SDD) task checklist
+    ├── architecture.md             # Decoder math & complexity budget
+    └── tasks.md                    # Implementation checklist
 ```
 
 ---
 
 ## 5. Quickstart (Run Locally)
 
-1. **Create a clean virtual environment & install pinned dependencies:**
-   ```bash
+1. **Create a virtual environment & install pinned dependencies:**
+   ```powershell
    python -m venv .venv
-   # Windows PowerShell: .venv\Scripts\Activate.ps1
-   # Linux/macOS:        source .venv/bin/activate
+   .venv\Scripts\Activate.ps1
    pip install -r handin/requirements.txt
    ```
 
-2. **Run the stress-test & banned-library verification suite:**
-   ```bash
+2. **Run unit tests, stress checks, and local benchmark:**
+   ```powershell
+   python -m unittest discover -s tests -v
    python scripts/verify_and_stress_test.py
+   python scripts/ablation_benchmark.py --shots 20000
    ```
 
-3. **Benchmark on `train.csv` and generate `submission.csv`:**
-   *(Place `train.csv` and `test.csv` from the Kaggle competition into `data/` first.)*
-   ```bash
+3. **Validate on `train.csv` and generate `submission.csv`:**
+   *(Place `train.csv` and `test.csv` from Kaggle into `data/` first.)*
+   ```powershell
    python scripts/validate_train.py
    python scripts/generate_submission.py
    ```
-
----
-
-## 6. References
-* **Competition Repo:** [`JuliusRye/QEC_Decoder_Hakathon_2026`](https://github.com/JuliusRye/QEC_Decoder_Hakathon_2026)
-* **Code:** `[[18, 4, 4]]` qLDPC memory experiment (Wang et al., 2026) under SI1000 circuit-level noise (Gidney et al., 2021).
